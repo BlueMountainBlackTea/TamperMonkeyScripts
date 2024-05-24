@@ -8,7 +8,7 @@ This userscript adds an options button to extract anime names from checkboxes on
 
 ## Installation
 1. Make sure you have a userscript manager installed in your browser, such as Tampermonkey.
-2. Click [here](LINK_TO_RAW_SCRIPT) to install the script.
+2. Click [here](https://raw.githubusercontent.com/BlueMountainBlackTea/TamperMonkeyScripts/main/SubspleaseExtractor.user) to install the script.
 
 ## Usage
 - Navigate to any show page on Subsplease.org.
@@ -27,5 +27,5 @@ This userscript adds an options button to extract anime names from checkboxes on
 - Ensure your browser's clipboard permissions allow copying text.
 
 ## License
-This script is licensed under the [MIT License](LINK_TO_LICENSE).
+This script is licensed under the [MIT License](https://github.com/BlueMountainBlackTea/TamperMonkeyScripts/blob/main/LICENSE).
 
