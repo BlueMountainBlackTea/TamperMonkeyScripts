@@ -1,0 +1,193 @@
+// ==UserScript==
+// @name         SubspleaseExtractor
+// @namespace    http://tampermonkey.net/
+// @version      0.3
+// @description  Adds an options button to extract anime names from checkboxes on Subsplease.org for RSS feeds in regex
+// @author       BlueMountainBlackTea
+// @match        https://subsplease.org/shows/*
+// @grant        GM_addStyle
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    const targetClass = "all-shows-link";
+    let checkboxesAdded = false;
+
+    function addCheckbox() {
+        if (checkboxesAdded) {
+            // Remove checkboxes
+            const checkboxes = document.querySelectorAll(`.${targetClass} input[type=checkbox]`);
+            checkboxes.forEach(checkbox => checkbox.remove());
+            checkboxesAdded = false;
+        } else {
+            // Add checkboxes
+            addOptionsButton();
+            const elements = document.getElementsByClassName(targetClass);
+            Array.from(elements).forEach(element => {
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.value = element.textContent.trim();
+                checkbox.id = `${targetClass}-checkbox-add`;
+                const label = document.createElement("label");
+                label.setAttribute("for", checkbox.id);
+                label.textContent = "Add";
+                checkbox.style.backgroundColor = "lightblue";
+                checkbox.style.marginRight = "5px";
+                element.insertBefore(checkbox, element.firstChild);
+            });
+            checkboxesAdded = true;
+        }
+    }
+
+    function extractCheckedCheckboxes() {
+        const checkboxes = document.querySelectorAll(`.${targetClass} input[type="checkbox"]:checked`);
+        const names = Array.from(checkboxes).map(checkbox => checkbox.value);
+        return names.join('\n');
+    }
+
+    function extractCheckedCheckboxesForRegex() {
+        const checkboxes = document.querySelectorAll(`.${targetClass} input[type="checkbox"]:checked`);
+        const names = Array.from(checkboxes).map(checkbox => `\\b${checkbox.value}\\b|`);
+        return names.join('');
+    }
+
+    function extractCheckedCheckboxNames() {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+        const names = Array.from(checkboxes).map(checkbox => checkbox.value);
+        return names;
+    }
+
+    function createOptionsMenu() {
+        const optionsMenu = document.createElement("div");
+        optionsMenu.id = "subsplease-options-menu";
+        optionsMenu.style.position = "fixed";
+        optionsMenu.style.bottom = "50px";  // Adjusted to align with the button
+        optionsMenu.style.zIndex = "9999";
+        optionsMenu.style.padding = "10px";
+        optionsMenu.style.display = "none";
+        optionsMenu.style.textAlign = "left";
+
+        const copyButton = document.createElement("button");
+        copyButton.textContent = "Copy";
+        copyButton.style.marginBottom = "10px";
+        copyButton.style.display = "block";
+        copyButton.addEventListener("click", function() {
+            const extractedData = extractCheckedCheckboxes();
+            if (extractedData) {
+                navigator.clipboard.writeText(extractedData).then(function() {
+                    alert("Copied to clipboard!");
+                }, function(err) {
+                    alert("Failed to copy: ", err);
+                });
+            } else {
+                alert("No checkboxes are checked.");
+            }
+        });
+
+        const extractButton = document.createElement("button");
+        extractButton.textContent = "Extract";
+        extractButton.style.marginBottom = "10px";
+        extractButton.style.display = "block";
+        extractButton.addEventListener("click", function() {
+            const extractedData = extractCheckedCheckboxes();
+            if (extractedData) {
+                const blob = new Blob([extractedData], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'checkbox_data.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } else {
+                alert("No checkboxes are checked.");
+            }
+        });
+
+        const regexButton = document.createElement("button");
+        regexButton.textContent = "Regex";
+        regexButton.style.marginBottom = "10px";
+        regexButton.style.display = "block";
+        regexButton.addEventListener("click", function() {
+            const extractedData = extractCheckedCheckboxesForRegex();
+            if (extractedData) {
+                navigator.clipboard.writeText(extractedData).then(function() {
+                    alert("Regex pattern copied to clipboard!");
+                }, function(err) {
+                    alert("Failed to copy: ", err);
+                });
+            } else {
+                alert("No checkboxes are checked.");
+            }
+        });
+
+        //
+        const nyaaRSS = document.createElement("button");
+        nyaaRSS.textContent = "nyaa RSS";
+        nyaaRSS.style.marginBottom = "10px";
+        nyaaRSS.style.display = "block";
+        nyaaRSS.addEventListener("click", function() {
+            const checkboxNames = extractCheckedCheckboxNames();
+            if (checkboxNames.length > 0) {
+                const formattedNames = checkboxNames.map(name => `"${name}"`).join('|');
+                const quality = '1080p';
+                const rssUrl = `https://nyaa.si/?page=rss&u=subsplease&q=${formattedNames}+${quality}`;
+                navigator.clipboard.writeText(rssUrl).then(function() {
+                    alert("RSS URL copied to clipboard!");
+                }, function(err) {
+                    alert("Failed to copy: " + err);
+                });
+            } else {
+                alert("No checkboxes are checked.");
+            }
+        });
+
+        optionsMenu.appendChild(copyButton);
+        optionsMenu.appendChild(regexButton);
+        optionsMenu.appendChild(extractButton);
+        optionsMenu.appendChild(nyaaRSS);
+        document.body.appendChild(optionsMenu);
+
+        return optionsMenu;
+    }
+
+
+
+    const optionsMenu = createOptionsMenu();
+
+    function toggleOptionsMenu() {
+        optionsMenu.style.display = optionsMenu.style.display === "block" ? "none" : "block";
+    }
+
+    function addOptionsButton() {
+        const optionsButton = document.createElement("button");
+        optionsButton.textContent = "Options";
+        optionsButton.style.position = "fixed";
+        optionsButton.style.bottom = "10px";
+        optionsButton.style.left = "10px";
+        optionsButton.style.zIndex = "9999";
+        optionsButton.addEventListener("click", toggleOptionsMenu);
+        document.body.appendChild(optionsButton);
+    }
+
+
+
+
+    document.addEventListener('keydown', function(event) {
+        if (event.ctrlKey && event.shiftKey && event.key === 'Y') {
+            addCheckbox();
+        }
+    });
+
+    GM_addStyle(`
+        input[type="checkbox"] {
+            /* Add custom styles here */
+        }
+        #subsplease-options-menu {
+            text-align: left; /* Ensure text alignment is left */
+        }
+
+    `);
+})();
